@@ -1,0 +1,5 @@
+name: oscilloscope
+version: 0.1.0
+author: bob_twinkles
+main: tk.sirtwinkles.oscilloscope.OSPlugin
+commands:
