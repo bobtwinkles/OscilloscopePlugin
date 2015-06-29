@@ -59,17 +59,23 @@ public class Oscilloscope {
 
     private Location displayRootLocation;
     private BiMap<Integer, Location> probes;
-    private final ScopeType type;
+    private ScopeType type;
     private IChatBaseComponent[] textDisplay;
     private ScopeMapRenderer[] display;
     private int stepX;
     private int stepZ;
     private int displayWidth;
     private int displayHeight;
+    private int id;
+
+    // Cached chat modifiers for sign-based buttons
+    private ChatModifier setLogicMode;
+    private ChatModifier setAnalogMode;
 
     public Oscilloscope(Block displayRoot, String[] lines) {
         this.displayRootLocation = displayRoot.getLocation();
         this.probes = HashBiMap.create();
+        this.id = -1;
 
         // Figure out what type of oscilloscope we're going to default to
         Sign bs = (Sign)displayRoot.getState();
@@ -167,7 +173,6 @@ public class Oscilloscope {
         for (int x = 0; x < displayWidth; ++x) {
             for (int y = 0; y < displayHeight; ++y) {
                 MapView m = maps[x + y * MAX_DISPLAY_SIZE];
-                OSPlugin.logger.info(x + " " + y);
                 ScopeMapRenderer smr = new ScopeMapRenderer(m);
                 m.addRenderer(smr);
                 display[x + y * displayWidth] = smr;
@@ -181,11 +186,17 @@ public class Oscilloscope {
             }
         }
 
-        OSPlugin.logger.info(searchCenter.toString());
-        OSPlugin.logger.info(queryRes.toString());
-
         textDisplay = new IChatBaseComponent[3];
-        updateDisplay();
+        updateSign();
+    }
+
+    public void setType(ScopeType mode) {
+        this.type = mode;
+        updateSign();
+    }
+
+    void setID(int id) {
+        this.id = id;
     }
 
     public void tick() {
@@ -200,6 +211,15 @@ public class Oscilloscope {
             int y = (int)(f * plotHeight) + (plotHeight / 2) + 1;
             plotPixel(t, y, (byte)126);
         }
+    }
+
+    public void destroy() {
+        Sign s = (Sign)displayRootLocation.getBlock().getState();
+        s.setLine(0, "RIP Oscilloscope");
+        for (int i = 1; i < 4; ++i) {
+            s.setLine(i, "");
+        }
+        s.update();
     }
 
     private void plotPixel(int x, int y, byte color) {
@@ -220,7 +240,7 @@ public class Oscilloscope {
     /**
      * Updates our internal textDisplay representation, and submits it to the task queue to be updated.
      */
-    private void updateDisplay() {
+    private void updateSign() {
         ChatComponentText title = new ChatComponentText("Oscilloscope");
         ChatComponentText modeRoot = new ChatComponentText("");
 
@@ -232,10 +252,12 @@ public class Oscilloscope {
             case LOGIC:
                 logic.setChatModifier(CONFIG_ACTIVE);
                 analog.setChatModifier(CONFIG_SELECTABLE);
+                OSPlugin.logger.info("Scope type is logic");
                 break;
             case ANALOG:
                 logic.setChatModifier(CONFIG_SELECTABLE);
                 analog.setChatModifier(CONFIG_ACTIVE);
+                OSPlugin.logger.info("Scope type is analog");
                 break;
         }
         modeRoot.addSibling(logic);

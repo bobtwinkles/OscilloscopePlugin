@@ -3,3 +3,6 @@ version: 0.1.0
 author: bob_twinkles
 main: tk.sirtwinkles.oscilloscope.OSPlugin
 commands:
+  setType:
+    description: Sets an oscilloscope type
+    usage: /setType <ScopeID> <logic|analog>

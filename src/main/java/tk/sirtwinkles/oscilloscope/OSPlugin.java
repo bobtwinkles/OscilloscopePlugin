@@ -1,11 +1,15 @@
 package tk.sirtwinkles.oscilloscope;
 
+import org.bukkit.command.PluginCommand;
 import org.bukkit.entity.Player;
 import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
+import tk.sirtwinkles.oscilloscope.commands.CommandCompleter;
 import tk.sirtwinkles.oscilloscope.listener.OscilloscopeCreationListner;
 import tk.sirtwinkles.oscilloscope.listener.RedstoneListener;
 import tk.sirtwinkles.oscilloscope.listener.SelectionListener;
+import tk.sirtwinkles.oscilloscope.scope.ScopeRegistry;
+import tk.sirtwinkles.oscilloscope.scope.commands.ScopeSetType;
 import tk.sirtwinkles.oscilloscope.session.Session;
 import tk.sirtwinkles.oscilloscope.task.MapUpdateTask;
 import tk.sirtwinkles.oscilloscope.task.OscilloscopeTickTask;
@@ -49,12 +53,18 @@ public class OSPlugin extends JavaPlugin {
 
         mapUpdateTask.runTaskTimer(this, 0, 4);
         oscilloscopeTickTask.runTaskTimer(this, 1, 4);
+
+        registerCommand("setType", new ScopeSetType());
     }
 
     @Override
     public void onDisable() {
+        logger.info("################################################################################");
+        logger.info("#                              DISABLING OSCILLOSCOPE                          #");
+        logger.info("################################################################################");
         manager.onDisable();
         mapUpdateTask.cancel();
+        scopeRegistry.destroyScopes();
         saveConfig();
     }
 
@@ -82,5 +92,11 @@ public class OSPlugin extends JavaPlugin {
      */
     private void registerListner(Listener l) {
         getServer().getPluginManager().registerEvents(l, this);
+    }
+
+    private void registerCommand(String cmd, CommandCompleter c) {
+        PluginCommand pc = getCommand(cmd);
+        pc.setExecutor(c);
+        pc.setTabCompleter(c);
     }
 }

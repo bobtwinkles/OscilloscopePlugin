@@ -1,4 +1,4 @@
-package tk.sirtwinkles.oscilloscope;
+package tk.sirtwinkles.oscilloscope.scope;
 
 import com.google.common.collect.BiMap;
 import com.google.common.collect.HashBiMap;
@@ -8,6 +8,7 @@ import org.bukkit.Material;
 import org.bukkit.block.Block;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.metadata.MetadataValue;
+import tk.sirtwinkles.oscilloscope.OSPlugin;
 import tk.sirtwinkles.oscilloscope.scope.Oscilloscope;
 
 import java.util.List;
@@ -45,10 +46,24 @@ public class ScopeRegistry {
         }
     }
 
+    /**
+     * Get a scope by ID.
+     * @param sid Scope ID
+     * @return The scope with ID <code>sid</code> or null, if that scope does not exist.
+     */
+    public Oscilloscope getScope(int sid) {
+        if (0 <= sid && sid < scopes.size()) {
+            return scopes.get(sid);
+        } else {
+            return null;
+        }
+    }
+
     public boolean tryCreateScope(Block b, String[] lines) {
         if (b.getType() == Material.WALL_SIGN) {
             Oscilloscope scope = new Oscilloscope(b, lines);
             int scopeID = insertScope(scope);
+            scope.setID(scopeID);
             b.setMetadata("oscilloscope", new FixedMetadataValue(OSPlugin.instance, scopeID));
             locationMap.put(b.getLocation(), scopeID);
             return true;
@@ -60,6 +75,12 @@ public class ScopeRegistry {
     public void tickScopes() {
         for (Oscilloscope s : scopes) {
             s.tick();
+        }
+    }
+
+    public void destroyScopes() {
+        for (Oscilloscope s : scopes) {
+            s.destroy();
         }
     }
 

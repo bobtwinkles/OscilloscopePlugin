@@ -9,8 +9,6 @@ import org.bukkit.block.BlockState;
 import org.bukkit.craftbukkit.v1_8_R3.block.CraftSign;
 import org.bukkit.scheduler.BukkitRunnable;
 
-import java.util.Arrays;
-
 /**
  * Created by bob_twinkles on 6/26/15.
  * Dumb hack to work around the fact that Bukkit eats our formatting with it's "sanitization" of setText
@@ -39,6 +37,9 @@ public class DeferSignSetTask extends BukkitRunnable{
 
         CraftSign craftSign = (CraftSign)bs;
         TileEntitySign sign = craftSign.getTileEntity();
+        sign.isEditable = true;
+        craftSign.update(true);
+
         System.arraycopy(cs, 0, sign.lines, 0, cs.length);
 
         sign.update();
