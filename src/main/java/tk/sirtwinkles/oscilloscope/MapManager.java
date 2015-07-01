@@ -27,6 +27,7 @@ public class MapManager {
     public MapManager() {
         this.mapPool = Queues.newArrayDeque();
         this.reservedIDs = OSPlugin.instance.getConfig().getShortList(MAP_RESERVED_PATH);
+        mapPool.addAll(reservedIDs);
         this.dirtyMaps = Sets.newHashSet();
     }
 
