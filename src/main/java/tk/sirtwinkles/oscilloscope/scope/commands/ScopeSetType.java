@@ -7,6 +7,7 @@ import tk.sirtwinkles.oscilloscope.commands.CommandCompleter;
 import tk.sirtwinkles.oscilloscope.scope.Oscilloscope;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -30,10 +31,8 @@ public class ScopeSetType implements CommandCompleter {
             }
             if (args[1].equalsIgnoreCase("logic")) {
                 s.setType(Oscilloscope.ScopeType.LOGIC);
-                OSPlugin.logger.info("Set scope type to logic");
             } else if (args[1].equalsIgnoreCase("analog")) {
                 s.setType(Oscilloscope.ScopeType.ANALOG);
-                OSPlugin.logger.info("Set scope type to analog");
             } else {
                 sender.sendMessage(args[1] + " is not a recognized scope type");
                 return false;
@@ -56,10 +55,10 @@ public class ScopeSetType implements CommandCompleter {
         switch (args[1].charAt(0)) {
             case 'l':
             case 'L':
-                return Arrays.asList("logic");
+                return Collections.singletonList("logic");
             case 'a':
             case 'A':
-                return Arrays.asList("analog");
+                return Collections.singletonList("analog");
             default:
                 return null;
         }

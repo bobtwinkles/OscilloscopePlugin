@@ -6,3 +6,6 @@ commands:
   setType:
     description: Sets an oscilloscope type
     usage: /setType <ScopeID> <logic|analog>
+  oscilloscopeMenu:
+    desciption: Displays a menu of oscilloscope actions
+    usage: /oscilloscopeMenu <ScopeID>

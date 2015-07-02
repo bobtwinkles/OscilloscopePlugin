@@ -14,6 +14,7 @@ import org.bukkit.craftbukkit.v1_8_R3.entity.CraftItemFrame;
 import org.bukkit.entity.Entity;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.map.MapView;
+import tk.sirtwinkles.oscilloscope.MapManager;
 import tk.sirtwinkles.oscilloscope.OSPlugin;
 import tk.sirtwinkles.oscilloscope.task.DeferSignSetTask;
 
@@ -69,8 +70,7 @@ public class Oscilloscope {
     private int id;
 
     // Cached chat modifiers for sign-based buttons
-    private ChatModifier setLogicMode;
-    private ChatModifier setAnalogMode;
+    private ChatModifier displayMenuModifier;
 
     public Oscilloscope(Block displayRoot, String[] lines) {
         this.displayRootLocation = displayRoot.getLocation();
@@ -186,7 +186,12 @@ public class Oscilloscope {
             }
         }
 
+        // Set up text display stuff
         textDisplay = new IChatBaseComponent[3];
+
+        displayMenuModifier = CONFIG_SELECTABLE;
+
+        // push out the first text display update
         updateSign();
     }
 
@@ -196,7 +201,13 @@ public class Oscilloscope {
     }
 
     void setID(int id) {
+        String command = "/oscilloscopeMenu " + id;
+        displayMenuModifier = new ChatModifier();
+        displayMenuModifier.setColor(CONFIG_SELECTABLE.getColor());
+        displayMenuModifier.setChatClickable(new ChatClickable(ChatClickable.EnumClickAction.RUN_COMMAND, command));
         this.id = id;
+
+        updateSign();
     }
 
     public void tick() {
@@ -218,6 +229,10 @@ public class Oscilloscope {
         s.setLine(0, "RIP Oscilloscope");
         for (int i = 1; i < 4; ++i) {
             s.setLine(i, "");
+        }
+        MapManager m = OSPlugin.instance.getMapManager();
+        for (ScopeMapRenderer smr : display) {
+            m.returnMap(smr.getMapView());
         }
         s.update();
     }
@@ -252,14 +267,13 @@ public class Oscilloscope {
             case LOGIC:
                 logic.setChatModifier(CONFIG_ACTIVE);
                 analog.setChatModifier(CONFIG_SELECTABLE);
-                OSPlugin.logger.info("Scope type is logic");
                 break;
             case ANALOG:
                 logic.setChatModifier(CONFIG_SELECTABLE);
                 analog.setChatModifier(CONFIG_ACTIVE);
-                OSPlugin.logger.info("Scope type is analog");
                 break;
         }
+        modeRoot.setChatModifier(displayMenuModifier);
         modeRoot.addSibling(logic);
         modeRoot.addSibling(analog);
 

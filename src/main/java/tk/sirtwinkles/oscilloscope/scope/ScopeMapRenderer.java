@@ -45,4 +45,8 @@ public class ScopeMapRenderer extends MapRenderer {
         Arrays.fill(mapData, (byte)116);
         mm.markMapDirty(this.map);
     }
+
+    public MapView getMapView() {
+        return map;
+    }
 }

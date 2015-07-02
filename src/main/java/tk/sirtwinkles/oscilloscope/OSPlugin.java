@@ -9,6 +9,7 @@ import tk.sirtwinkles.oscilloscope.listener.OscilloscopeCreationListner;
 import tk.sirtwinkles.oscilloscope.listener.RedstoneListener;
 import tk.sirtwinkles.oscilloscope.listener.SelectionListener;
 import tk.sirtwinkles.oscilloscope.scope.ScopeRegistry;
+import tk.sirtwinkles.oscilloscope.scope.commands.PresentMenuCommand;
 import tk.sirtwinkles.oscilloscope.scope.commands.ScopeSetType;
 import tk.sirtwinkles.oscilloscope.session.Session;
 import tk.sirtwinkles.oscilloscope.task.MapUpdateTask;
@@ -55,6 +56,7 @@ public class OSPlugin extends JavaPlugin {
         oscilloscopeTickTask.runTaskTimer(this, 1, 4);
 
         registerCommand("setType", new ScopeSetType());
+        registerCommand("oscilloscopeMenu", new PresentMenuCommand());
     }
 
     @Override
