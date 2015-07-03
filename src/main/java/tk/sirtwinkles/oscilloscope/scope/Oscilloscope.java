@@ -137,7 +137,7 @@ public class Oscilloscope {
         Location searchCenter = displayRootLocation.clone().add(searchx, BB_QUERY_SIZE + 1.5, searchz);
         Collection<Entity> queryRes = w.getNearbyEntities(searchCenter, Math.abs(searchx) + 1, BB_QUERY_SIZE, Math.abs(searchz) + 1);
 
-        MapView[] maps = new MapView[MAX_DISPLAY_SIZE * MAX_DISPLAY_SIZE];
+        CraftItemFrame[] frames = new CraftItemFrame[MAX_DISPLAY_SIZE * MAX_DISPLAY_SIZE];
 
         // Find the item frames we'll be using
         for (Entity e : queryRes) {
@@ -146,7 +146,6 @@ public class Oscilloscope {
                 if (!cie.getFacing().equals(facing)) continue;
 
                 Location frameLoc = cie.getLocation();
-                MapView m = OSPlugin.instance.getMapManager().getMap();
                 int mx, my;
                 my = frameLoc.getBlockY() - displayRootLocation.getBlockY() - 1;
                 if (stepX == 0) { // east/west orientation
@@ -156,23 +155,19 @@ public class Oscilloscope {
                 }
                 if (mx < 0 || mx >= MAX_DISPLAY_SIZE) continue;
                 if (my < 0 || my >= MAX_DISPLAY_SIZE) continue;
-                maps[mx + my * MAX_DISPLAY_SIZE] = m;
-                ItemStack is = new ItemStack(Material.MAP);
-                is.setDurability(m.getId());
-                cie.setItem(is);
-                cie.setRotation(Rotation.NONE);
+                frames[mx + my * MAX_DISPLAY_SIZE] = cie;
             }
         }
 
         // detect height and width
         displayHeight = MAX_DISPLAY_SIZE;
         for (int x = 0; x < MAX_DISPLAY_SIZE; ++x) {
-            if (maps[x] == null) {
+            if (frames[x] == null) {
                 displayWidth = x;
                 break;
             }
             for (int y = 0; y < displayHeight; ++y) {
-                if (maps[x + y * MAX_DISPLAY_SIZE] == null) {
+                if (frames[x + y * MAX_DISPLAY_SIZE] == null) {
                     if (y < displayHeight) {
                         displayHeight = y;
                         break;
@@ -185,7 +180,12 @@ public class Oscilloscope {
         display = new ScopeMapRenderer[displayWidth * displayHeight];
         for (int x = 0; x < displayWidth; ++x) {
             for (int y = 0; y < displayHeight; ++y) {
-                MapView m = maps[x + y * MAX_DISPLAY_SIZE];
+                CraftItemFrame cie = frames[x + y * MAX_DISPLAY_SIZE];
+                MapView m = OSPlugin.instance.getMapManager().getMap();
+                ItemStack is = new ItemStack(Material.MAP);
+                is.setDurability(m.getId());
+                cie.setItem(is);
+                cie.setRotation(Rotation.NONE);
                 ScopeMapRenderer smr = new ScopeMapRenderer(m);
                 m.addRenderer(smr);
                 display[x + y * displayWidth] = smr;
