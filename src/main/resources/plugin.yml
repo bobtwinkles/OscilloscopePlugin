@@ -9,3 +9,9 @@ commands:
   oscilloscopeMenu:
     desciption: Displays a menu of oscilloscope actions
     usage: /oscilloscopeMenu <ScopeID>
+  addprobe:
+    description: Allows the user to select the location of a new probe
+    usage: /addprobe <ScopeID> [<x> <y> <z> [world]]
+  startrecording:
+    description: Tells a scope to record
+    usage: /startrecording <ScopeID>

@@ -18,11 +18,12 @@ import tk.sirtwinkles.oscilloscope.MapManager;
 import tk.sirtwinkles.oscilloscope.OSPlugin;
 import tk.sirtwinkles.oscilloscope.task.DeferSignSetTask;
 
+import java.util.Collection;
+import java.util.Map;
+import java.util.Random;
+
 import static tk.sirtwinkles.oscilloscope.scope.ScopeMapRenderer.BLACK;
 import static tk.sirtwinkles.oscilloscope.scope.ScopeMapRenderer.MAP_SIZE;
-
-import java.util.Collection;
-import java.util.Random;
 
 /**
  * Keeps track of persistent oscilloscope state.
@@ -56,6 +57,7 @@ public class Oscilloscope {
 
     private static final int BB_QUERY_SIZE = (MAX_DISPLAY_SIZE / 2) + 1;
 
+    // The rainbow, chosen as the brightest in their color ranges.
     private static final byte[] CHAN_COLORS = {
             114, 62, 74, (byte)134, 102, 98
     };
@@ -74,6 +76,7 @@ public class Oscilloscope {
     private IChatBaseComponent[] textDisplay;
     private ScopeMapRenderer[] display;
     private int[] record;
+    private int recordingHead;
     private int stepX;
     private int stepZ;
     // display* variables are in units of maps
@@ -225,13 +228,16 @@ public class Oscilloscope {
         OSPlugin.logger.info("Scope " + id + " has " + nchannels + " channels in mode " + this.type + " with a display height of " + displayHeight);
         record = new int[nchannels * displayWidth * DISPLAY_SCALE];
 
-        //XXX: RANDOMIZE DATA
+        probes.clear();
+
+        // randomize data
         Random r = new Random();
         int max = (this.type == ScopeType.LOGIC) ? 2 : 16;
         for (int i = 0; i < record.length; ++i) {
             record[i] = r.nextInt(max);
         }
 
+        updateDisplay(true);
         updateSign();
     }
 
@@ -249,33 +255,88 @@ public class Oscilloscope {
         return id;
     }
 
-    public void tick() {
-        for (ScopeMapRenderer smr : display) {
-            smr.clear();
+    public boolean addProbe(World w, int x, int y, int z) {
+        Location loc = new Location(w, x, y, z);
+        int id = probes.size();
+        if (id >= nchannels) {
+            return false;
         }
-        switch(this.type) {
-            case ANALOG:
-                for (int chan = 0; chan < nchannels; ++chan) {
-                    int chanbase = chan * displayWidth * DISPLAY_SCALE;
-                    for (int t = 0; t < displayWidth * DISPLAY_SCALE; ++t) {
-                        int hbase = chan * 16 + record[t + chanbase];
-                        plotPixel(t, hbase, CHAN_COLORS[chan % CHAN_COLORS.length]);
-                    }
-                }
-                break;
-            case LOGIC:
-                for (int chan = 0; chan < nchannels; ++chan) {
-                    int chanbase = chan * displayWidth * DISPLAY_SCALE;
-                    for (int t = 0; t < displayWidth * DISPLAY_SCALE; ++t) {
-                        if (record[t + chanbase] == 0) {
-                            plotPixel(t, chan, BLACK);
+        probes.put(id, loc);
+        return true;
+    }
+
+    public boolean hasChannelsAvailable() {
+        return probes.size() < nchannels;
+    }
+
+    public World getWorld() {
+        return displayRootLocation.getWorld();
+    }
+
+    public void startRecording() {
+        recordingHead = 0;
+    }
+
+    public void tick() {
+        if (0 <= recordingHead && recordingHead < displayWidth * DISPLAY_SCALE) {
+            for (Map.Entry<Integer, Location> e : probes.entrySet()) {
+                int chan = e.getKey();
+                Block b = e.getValue().getBlock();
+                int recordPosition = recordingHead + chan * displayWidth * DISPLAY_SCALE;
+                switch(this.type) {
+                    case ANALOG:
+                        int power = b.getBlockPower();
+                        record[recordPosition] = power; break;
+                    case LOGIC:
+                        if (b.isBlockPowered()) {
+                            record[recordPosition] = 2;
+                        } else if (b.isBlockIndirectlyPowered()) {
+                            record[recordPosition] = 1;
                         } else {
-                            byte color = CHAN_COLORS[chan % CHAN_COLORS.length];
+                            record[recordPosition] = 0;
+                        }
+                        break;
+                }
+            }
+            ++recordingHead;
+            updateDisplay(false);
+        } else if (recordingHead == displayWidth * DISPLAY_SCALE) {
+            recordingHead = -1;
+            updateDisplay(true);
+        }
+    }
+
+    public void updateDisplay(boolean force) {
+        // Only update every 4 ticks to reduce load.
+        if (force || displayRootLocation.getWorld().getTime() % 4 == 1) {
+            for (ScopeMapRenderer smr : display) {
+                smr.clear();
+            }
+            switch (this.type) {
+                case ANALOG:
+                    for (int chan = 0; chan < nchannels; ++chan) {
+                        int chanbase = chan * displayWidth * DISPLAY_SCALE;
+                        for (int t = 0; t < displayWidth * DISPLAY_SCALE; ++t) {
+                            int hbase = chan * 16 + record[t + chanbase];
+                            plotPixel(t, hbase, CHAN_COLORS[chan % CHAN_COLORS.length]);
+                        }
+                    }
+                    break;
+                case LOGIC:
+                    for (int chan = 0; chan < nchannels; ++chan) {
+                        int chanbase = chan * displayWidth * DISPLAY_SCALE;
+                        for (int t = 0; t < displayWidth * DISPLAY_SCALE; ++t) {
+                            byte color = (byte)82; // Should be "I give up pink"
+                            switch (record[t + chanbase]) {
+                                case 0: color = BLACK; break;
+                                case 1: color = (byte)(CHAN_COLORS[chan % CHAN_COLORS.length] - 1); break;
+                                case 2: color = CHAN_COLORS[chan % CHAN_COLORS.length]; break;
+                            }
                             plotPixel(t, chan, color);
                         }
                     }
-                }
-                break;
+                    break;
+            }
         }
     }
 

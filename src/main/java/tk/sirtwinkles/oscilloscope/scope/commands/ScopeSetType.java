@@ -2,8 +2,6 @@ package tk.sirtwinkles.oscilloscope.scope.commands;
 
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
-import tk.sirtwinkles.oscilloscope.OSPlugin;
-import tk.sirtwinkles.oscilloscope.commands.CommandCompleter;
 import tk.sirtwinkles.oscilloscope.scope.Oscilloscope;
 
 import java.util.Arrays;
@@ -15,33 +13,26 @@ import java.util.List;
  * This will almost always be run by the player right clicking on the oscilloscope's sign.
  * Created by bob_twinkles on 6/29/15.
  */
-public class ScopeSetType implements CommandCompleter {
+public class ScopeSetType extends AbstractScopeCommand {
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (args.length != 2) {
-            sender.sendMessage("/scopeMode takes exactly 2 arguments");
+            sender.sendMessage(label + " takes exactly 2 arguments");
             return false;
         }
-        try {
-            int sid = Integer.valueOf(args[0]);
-            Oscilloscope s = OSPlugin.instance.getScopeRegistry().getScope(sid);
-            if (s == null) {
-                sender.sendMessage("Scope with id " + sid + " does not exist");
-                return false;
-            }
-            if (args[1].equalsIgnoreCase("logic")) {
-                s.setType(Oscilloscope.ScopeType.LOGIC);
-            } else if (args[1].equalsIgnoreCase("analog")) {
-                s.setType(Oscilloscope.ScopeType.ANALOG);
-            } else {
-                sender.sendMessage(args[1] + " is not a recognized scope type");
-                return false;
-            }
-            return true;
-        } catch (NumberFormatException ex) {
-            sender.sendMessage("First argument to /scopeMode must be an integral scope id");
+        Oscilloscope s = scopeFromArgs(sender, label, args);
+        if (s == null) {
             return false;
         }
+        if (args[1].equalsIgnoreCase("logic")) {
+            s.setType(Oscilloscope.ScopeType.LOGIC);
+        } else if (args[1].equalsIgnoreCase("analog")) {
+            s.setType(Oscilloscope.ScopeType.ANALOG);
+        } else {
+            sender.sendMessage(args[1] + " is not a recognized scope type");
+            return false;
+        }
+        return true;
     }
 
     @Override

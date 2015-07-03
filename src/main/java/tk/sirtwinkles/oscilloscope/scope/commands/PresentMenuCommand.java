@@ -6,8 +6,6 @@ import org.bukkit.command.Command;
 import org.bukkit.command.CommandSender;
 import org.bukkit.craftbukkit.v1_8_R3.entity.CraftPlayer;
 import org.bukkit.entity.Player;
-import tk.sirtwinkles.oscilloscope.OSPlugin;
-import tk.sirtwinkles.oscilloscope.commands.CommandCompleter;
 import tk.sirtwinkles.oscilloscope.scope.Oscilloscope;
 
 import java.util.List;
@@ -16,10 +14,12 @@ import java.util.List;
  * Presents a textual menu when run
  * Created by bob_twinkles on 6/29/15.
  */
-public class PresentMenuCommand implements CommandCompleter {
+public class PresentMenuCommand extends AbstractScopeCommand {
     private static final String[][] commands = {
             {"Analog Mode", "[ANA]", "/settype %d analog"},
-            {"Logic Mode",  "[LOG]", "/settype %d logic"}
+            {"Logic Mode",  "[LOG]", "/settype %d logic"},
+            {"Add a probe", "[ADD PROBE]", "/addprobe %d"},
+            {"Start recording", "[REC]", "/startrecording %d"}
     };
     private static final String prompt = ChatColor.AQUA + "====[Command Menu]====";
 
@@ -34,22 +34,11 @@ public class PresentMenuCommand implements CommandCompleter {
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        if (args.length != 1) {
-            sender.sendMessage(label + " requires exactly one argument");
-            return false;
-        }
-        int scopeid;
-        try {
-            scopeid = Integer.valueOf(args[0]);
-        } catch (NumberFormatException ex) {
-            sender.sendMessage("Argument must be an integer");
-            return false;
-        }
-        Oscilloscope s = OSPlugin.instance.getScopeRegistry().getScope(scopeid);
+        Oscilloscope s = scopeFromArgs(sender, label, args);
         if (s == null) {
-            sender.sendMessage("Scope " + scopeid + " does not exist");
             return false;
         }
+        int scopeid = s.getID();
         sender.sendMessage(prompt);
         if (sender instanceof Player) {
             CraftPlayer player = (CraftPlayer) sender;
@@ -90,6 +79,6 @@ public class PresentMenuCommand implements CommandCompleter {
     }
 
     private String formatCommand(String intro, String button, String command) {
-        return String.format("%s: %s", intro, command);
+        return String.format("%s %s: %s", button, intro, command);
     }
 }

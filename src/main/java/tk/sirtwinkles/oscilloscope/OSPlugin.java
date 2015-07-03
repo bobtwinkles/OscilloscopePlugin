@@ -6,11 +6,12 @@ import org.bukkit.event.Listener;
 import org.bukkit.plugin.java.JavaPlugin;
 import tk.sirtwinkles.oscilloscope.commands.CommandCompleter;
 import tk.sirtwinkles.oscilloscope.listener.OscilloscopeCreationListner;
-import tk.sirtwinkles.oscilloscope.listener.RedstoneListener;
 import tk.sirtwinkles.oscilloscope.listener.SelectionListener;
 import tk.sirtwinkles.oscilloscope.scope.ScopeRegistry;
+import tk.sirtwinkles.oscilloscope.scope.commands.AddProbeCommand;
 import tk.sirtwinkles.oscilloscope.scope.commands.PresentMenuCommand;
 import tk.sirtwinkles.oscilloscope.scope.commands.ScopeSetType;
+import tk.sirtwinkles.oscilloscope.scope.commands.StartRecordingCommand;
 import tk.sirtwinkles.oscilloscope.session.Session;
 import tk.sirtwinkles.oscilloscope.task.MapUpdateTask;
 import tk.sirtwinkles.oscilloscope.task.OscilloscopeTickTask;
@@ -42,7 +43,6 @@ public class OSPlugin extends JavaPlugin {
 
         sessions = new HashMap<Player, Session>();
 
-        registerListner(new RedstoneListener());
         registerListner(new SelectionListener());
         registerListner(new OscilloscopeCreationListner());
 
@@ -53,10 +53,12 @@ public class OSPlugin extends JavaPlugin {
         oscilloscopeTickTask = new OscilloscopeTickTask();
 
         mapUpdateTask.runTaskTimer(this, 0, 4);
-        oscilloscopeTickTask.runTaskTimer(this, 1, 4);
+        oscilloscopeTickTask.runTaskTimer(this, 0, 1);
 
         registerCommand("setType", new ScopeSetType());
         registerCommand("oscilloscopeMenu", new PresentMenuCommand());
+        registerCommand("addprobe", new AddProbeCommand());
+        registerCommand("startrecording", new StartRecordingCommand());
     }
 
     @Override
