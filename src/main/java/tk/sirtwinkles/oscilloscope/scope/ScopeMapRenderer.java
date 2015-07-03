@@ -19,30 +19,33 @@ public class ScopeMapRenderer extends MapRenderer {
     private byte[] mapData;
     private MapManager mm;
 
+    public static final int MAP_SIZE = 128;
+    public static final byte BLACK = 116;
+
     public ScopeMapRenderer(MapView map) {
         this.map = map;
-        mapData = new byte[128 * 128];
+        mapData = new byte[MAP_SIZE * MAP_SIZE];
         mm = OSPlugin.instance.getMapManager();
         clear();
     }
 
     @Override
     public void render(MapView map, MapCanvas canvas, Player player) {
-        for (int x = 0; x < 128; ++x) {
-            for (int y = 0; y < 128; ++y) {
-                canvas.setPixel(x, y, mapData[x + y * 128]);
+        for (int x = 0; x < MAP_SIZE; ++x) {
+            for (int y = 0; y < MAP_SIZE; ++y) {
+                canvas.setPixel(x, y, mapData[x + y * MAP_SIZE]);
             }
         }
     }
 
     public void plotPixel(int px, int py, byte color) {
         py = 127 - py; // maps are flipped because reasons
-        mapData[px + py * 128] = color;
+        mapData[px + py * MAP_SIZE] = color;
         mm.markMapDirty(this.map);
     }
 
     public void clear() {
-        Arrays.fill(mapData, (byte)116);
+        Arrays.fill(mapData, BLACK);
         mm.markMapDirty(this.map);
     }
 

@@ -18,7 +18,11 @@ import tk.sirtwinkles.oscilloscope.MapManager;
 import tk.sirtwinkles.oscilloscope.OSPlugin;
 import tk.sirtwinkles.oscilloscope.task.DeferSignSetTask;
 
+import static tk.sirtwinkles.oscilloscope.scope.ScopeMapRenderer.BLACK;
+import static tk.sirtwinkles.oscilloscope.scope.ScopeMapRenderer.MAP_SIZE;
+
 import java.util.Collection;
+import java.util.Random;
 
 /**
  * Keeps track of persistent oscilloscope state.
@@ -47,8 +51,14 @@ public class Oscilloscope {
     }
 
     public static final int MAX_DISPLAY_SIZE = 16;
+    public static final int DISPLAY_SCALE = 64; // Conversion from maps to pixels
+    public static final int PIXEL_SIZE = MAP_SIZE / DISPLAY_SCALE;
 
     private static final int BB_QUERY_SIZE = (MAX_DISPLAY_SIZE / 2) + 1;
+
+    private static final byte[] CHAN_COLORS = {
+            114, 62, 74, (byte)134, 102, 98
+    };
 
     /**
      * What type of scope are we?
@@ -63,10 +73,13 @@ public class Oscilloscope {
     private ScopeType type;
     private IChatBaseComponent[] textDisplay;
     private ScopeMapRenderer[] display;
+    private int[] record;
     private int stepX;
     private int stepZ;
+    // display* variables are in units of maps
     private int displayWidth;
     private int displayHeight;
+    private int nchannels;
     private int id;
 
     // Cached chat modifiers for sign-based buttons
@@ -180,11 +193,19 @@ public class Oscilloscope {
         }
 
         // Initialze the display to some garbage
-        for (int x = 0; x < 128 * displayWidth; ++x) {
-            for (int y = 0; y < 128 * displayHeight; ++y) {
+        for (int x = 0; x < DISPLAY_SCALE * displayWidth; ++x) {
+            for (int y = 0; y < DISPLAY_SCALE * displayHeight; ++y) {
                 plotPixel(x, y, (byte)(x ^ y));
             }
         }
+
+        switch(this.type) {
+            case LOGIC: nchannels = displayHeight * DISPLAY_SCALE; break;
+            case ANALOG: nchannels = displayHeight * (DISPLAY_SCALE / 16); break;
+        }
+        OSPlugin.logger.info("Scope " + id + " has " + nchannels + " channels in mode " + this.type);
+
+        record = new int[nchannels * displayWidth * DISPLAY_SCALE];
 
         // Set up text display stuff
         textDisplay = new IChatBaseComponent[3];
@@ -197,6 +218,20 @@ public class Oscilloscope {
 
     public void setType(ScopeType mode) {
         this.type = mode;
+        switch(this.type) {
+            case LOGIC: nchannels = displayHeight * DISPLAY_SCALE; break;
+            case ANALOG: nchannels = displayHeight * (DISPLAY_SCALE / 16); break;
+        }
+        OSPlugin.logger.info("Scope " + id + " has " + nchannels + " channels in mode " + this.type + " with a display height of " + displayHeight);
+        record = new int[nchannels * displayWidth * DISPLAY_SCALE];
+
+        //XXX: RANDOMIZE DATA
+        Random r = new Random();
+        int max = (this.type == ScopeType.LOGIC) ? 2 : 16;
+        for (int i = 0; i < record.length; ++i) {
+            record[i] = r.nextInt(max);
+        }
+
         updateSign();
     }
 
@@ -210,17 +245,37 @@ public class Oscilloscope {
         updateSign();
     }
 
+    public int getID() {
+        return id;
+    }
+
     public void tick() {
         for (ScopeMapRenderer smr : display) {
             smr.clear();
         }
-        long wt = OSPlugin.instance.getServer().getWorlds().get(0).getTime();
-        int plotHeight = (displayHeight * 128) - 2;
-        for (int t = 0; t < displayWidth * 128; ++t) {
-            float tf = (wt + t) /  20.f;
-            float f = MathHelper.sin((float)(2 * Math.PI * tf / 16)) / 2;
-            int y = (int)(f * plotHeight) + (plotHeight / 2) + 1;
-            plotPixel(t, y, (byte)126);
+        switch(this.type) {
+            case ANALOG:
+                for (int chan = 0; chan < nchannels; ++chan) {
+                    int chanbase = chan * displayWidth * DISPLAY_SCALE;
+                    for (int t = 0; t < displayWidth * DISPLAY_SCALE; ++t) {
+                        int hbase = chan * 16 + record[t + chanbase];
+                        plotPixel(t, hbase, CHAN_COLORS[chan % CHAN_COLORS.length]);
+                    }
+                }
+                break;
+            case LOGIC:
+                for (int chan = 0; chan < nchannels; ++chan) {
+                    int chanbase = chan * displayWidth * DISPLAY_SCALE;
+                    for (int t = 0; t < displayWidth * DISPLAY_SCALE; ++t) {
+                        if (record[t + chanbase] == 0) {
+                            plotPixel(t, chan, BLACK);
+                        } else {
+                            byte color = CHAN_COLORS[chan % CHAN_COLORS.length];
+                            plotPixel(t, chan, color);
+                        }
+                    }
+                }
+                break;
         }
     }
 
@@ -238,16 +293,26 @@ public class Oscilloscope {
     }
 
     private void plotPixel(int x, int y, byte color) {
-        if (x < 0 || x >= displayWidth * 128) {
+        if (x < 0 || x >= displayWidth * DISPLAY_SCALE) {
             return;
         }
-        if (y < 0 || y >= displayHeight * 128) {
+        if (y < 0 || y >= displayHeight * DISPLAY_SCALE) {
             return;
         }
-        int mx = x / 128;
-        int my = y / 128;
-        int px = x - (mx * 128);
-        int py = y - (my * 128);
+        x *= PIXEL_SIZE;
+        y *= PIXEL_SIZE;
+        for (int px = 0; px < PIXEL_SIZE; ++px) {
+            for (int py = 0; py < PIXEL_SIZE; ++py) {
+                mapWrite(x + px, y + py, color);
+            }
+        }
+    }
+
+    private void mapWrite(int x, int y, byte color) {
+        int mx = x / MAP_SIZE;
+        int my = y / MAP_SIZE;
+        int px = x - (mx * MAP_SIZE);
+        int py = y - (my * MAP_SIZE);
         ScopeMapRenderer smr = display[mx + my * displayWidth];
         smr.plotPixel(px, py, color);
     }
